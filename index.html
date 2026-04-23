@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moon Position · Right Ascension</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b14;
+  --surface: #0d1424;
+  --card: #101828;
+  --border: #1a2540;
+  --border2: #243050;
+  --sky: #93c5fd;
+  --moon: #fde68a;
+  --muted: #4a5a7a;
+  --text: #c8d5ef;
+  --bright: #e8eef8;
+  --green: #6ee7b7;
+  --red: #f87171;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 300;
+  min-height: 100vh;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 8%,  rgba(255,255,255,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 34% 22%, rgba(255,255,255,.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 56%  5%, rgba(255,255,255,.28) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 17%, rgba(255,255,255,.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 91% 31%, rgba(255,255,255,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at  5% 43%, rgba(255,255,255,.18) 0%, transparent 100%),
+    radial-gradient(1px 1px at 23% 57%, rgba(255,255,255,.24) 0%, transparent 100%),
+    radial-gradient(1px 1px at 67% 48%, rgba(255,255,255,.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 62%, rgba(255,255,255,.26) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 75%, rgba(255,255,255,.16) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 88%, rgba(255,255,255,.22) 0%, transparent 100%),
+    radial-gradient(1px 1px at 72% 91%, rgba(255,255,255,.28) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 29% 14%, rgba(200,210,255,.38) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 61% 38%, rgba(200,210,255,.28) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 83% 79%, rgba(200,210,255,.32) 0%, transparent 100%);
+  pointer-events: none; z-index: 0;
+}
+.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 64px; }
+
+header { text-align: center; margin-bottom: 44px; }
+.moon-icon {
+  font-size: 52px; line-height: 1; margin-bottom: 14px; display: block;
+  animation: mpulse 4s ease-in-out infinite;
+}
+@keyframes mpulse {
+  0%,100% { text-shadow: 0 0 18px rgba(253,230,138,.3); }
+  50%      { text-shadow: 0 0 36px rgba(253,230,138,.6); }
+}
+h1 {
+  font-family: 'EB Garamond', serif; font-size: clamp(24px,5vw,36px);
+  font-weight: 400; letter-spacing: .18em; color: var(--bright); text-transform: uppercase;
+}
+.subtitle { font-size: 11px; letter-spacing: .18em; color: var(--muted); margin-top: 8px; text-transform: uppercase; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 26px 30px; margin-bottom: 24px;
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media(max-width:560px){ .grid2 { grid-template-columns: 1fr; } }
+
+label {
+  display: block; font-size: 10px; letter-spacing: .14em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 6px;
+}
+select, input[type="date"], input[type="time"], input[type="text"] {
+  width: 100%; background: var(--card); border: 1px solid var(--border2);
+  border-radius: 6px; color: var(--text); font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; padding: 9px 11px; outline: none; transition: border-color .2s;
+  -webkit-appearance: none; appearance: none;
+}
+select:focus, input:focus { border-color: var(--sky); }
+select option { background: #1a2540; }
+
+.tz-badge { font-size: 11px; color: var(--moon); letter-spacing: .07em; margin-top: 5px; min-height: 15px; }
+
+#custom-row { display: none; grid-column: 1 / -1; }
+#custom-row.show { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+.btn-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+button {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  letter-spacing: .12em; text-transform: uppercase; padding: 10px 22px;
+  border-radius: 6px; border: 1px solid; cursor: pointer; transition: all .2s;
+}
+.btn-p { background: var(--moon); border-color: var(--moon); color: #1a1000; font-weight: 500; }
+.btn-p:hover { background: #fef3c7; }
+.btn-s { background: transparent; border-color: var(--border2); color: var(--sky); }
+.btn-s:hover { border-color: var(--sky); }
+
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media(max-width:560px){ .results-grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 22px;
+}
+.card-title {
+  font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
+  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.drow { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+.dlbl { font-size: 11px; color: var(--muted); letter-spacing: .07em; }
+.dval { font-size: 14px; color: var(--bright); text-align: right; }
+.dval.sky  { color: var(--sky);   font-size: 15px; }
+.dval.moon { color: var(--moon);  font-size: 15px; }
+.dval.ok   { color: var(--green); }
+.dval.bad  { color: var(--red);   }
+
+.phase-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.phase-emoji { font-size: 28px; }
+.phase-name { font-family: 'EB Garamond', serif; font-size: 17px; color: var(--bright); }
+.phase-illum { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.illum-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.illum-fill { height: 100%; background: linear-gradient(90deg,#8a7035,var(--moon)); border-radius: 2px; transition: width .5s; }
+
+/* RA steps */
+.ra-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 22px; margin-bottom: 14px;
+}
+.ra-card-title {
+  font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
+  margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.ra-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.ra-arrow { font-size: 15px; color: var(--border2); align-self: center; margin-bottom: 18px; flex: none; }
+.ra-step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 78px; }
+.ra-deg  { font-size: 20px; font-weight: 400; line-height: 1; }
+.ra-hms  { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.ra-lbl  { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; margin-top: 2px; }
+.s0 .ra-deg { color: var(--moon); }       .s0 .ra-lbl { color: var(--moon); }
+.s1 .ra-deg { color: #c4a85a; }           .s1 .ra-lbl { color: #c4a85a; }
+.s2 .ra-deg { color: #8a7035; }           .s2 .ra-lbl { color: #8a7035; }
+.s3 .ra-deg { color: #5a4820; }           .s3 .ra-lbl { color: #5a4820; }
+.s4 .ra-deg { color: #3a3010; }           .s4 .ra-lbl { color: #3a3010; }
+
+.ra-markers {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.ra-marker { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rm-val { font-size: 13px; color: var(--muted); }
+.rm-lbl { font-size: 9px; letter-spacing: .1em; color: var(--border2); text-transform: uppercase; }
+
+.footer-note {
+  font-size: 10px; color: var(--muted); letter-spacing: .07em;
+  text-align: center; margin-top: 6px;
+}
+#results { display: none; animation: fadeup .35s ease; }
+@keyframes fadeup { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <span class="moon-icon">🌙</span>
+  <h1>Moon Position</h1>
+  <p class="subtitle">Right Ascension &nbsp;·&nbsp; Declination &nbsp;·&nbsp; Horizontal Coordinates</p>
+</header>
+
+<div class="panel">
+  <div class="grid2" style="margin-bottom:18px">
+    <div>
+      <label for="ort">Location</label>
+      <select id="ort" onchange="onOrtChange()">
+        <option>New York City</option>
+        <option>Los Angeles</option>
+        <option>Chicago</option>
+        <option>São Paulo</option>
+        <option>Mexico City</option>
+        <option>London</option>
+        <option>Paris</option>
+        <option>Berlin</option>
+        <option>Hattingen</option>
+        <option>Hamburg</option>
+        <option>Munich</option>
+        <option>Vienna</option>
+        <option>Zurich</option>
+        <option>Moscow</option>
+        <option>Cairo</option>
+        <option>Dubai</option>
+        <option>Mumbai</option>
+        <option>Beijing</option>
+        <option>Tokyo</option>
+        <option>Sydney</option>
+        <option>Custom …</option>
+      </select>
+      <div class="tz-badge" id="tz-badge"></div>
+    </div>
+    <div id="custom-row" class="grid2">
+      <div><label for="lat-in">Latitude</label><input type="text" id="lat-in" value="40.7128"></div>
+      <div><label for="lon-in">Longitude</label><input type="text" id="lon-in" value="-74.0060"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <label for="datum">Date</label>
+      <input type="date" id="datum">
+    </div>
+    <div>
+      <label for="zeit" id="zeit-lbl">Time (local)</label>
+      <input type="time" id="zeit">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-p" onclick="jetzt()">&#9679; Now</button>
+    <button class="btn-s" onclick="berechnen()">Calculate</button>
+  </div>
+</div>
+
+<div id="results">
+  <div class="results-grid">
+    <div class="card">
+      <div class="card-title">Equatorial Coordinates (J2000)</div>
+      <div class="drow"><span class="dlbl">Right Ascension</span><span class="dval sky"  id="r-ra-hms">—</span></div>
+      <div class="drow"><span class="dlbl">RA (degrees)</span>     <span class="dval moon" id="r-ra-deg">—</span></div>
+      <div class="drow"><span class="dlbl">Declination</span>   <span class="dval sky"  id="r-dec-dms">—</span></div>
+      <div class="drow"><span class="dlbl">Dec (degrees)</span>    <span class="dval"      id="r-dec-deg">—</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Horizontal Coordinates &amp; Phase</div>
+      <div class="drow"><span class="dlbl">Azimuth</span>    <span class="dval" id="r-az">—</span></div>
+      <div class="drow"><span class="dlbl">Altitude</span>      <span class="dval" id="r-alt">—</span></div>
+      <div class="drow"><span class="dlbl">Visible</span>  <span class="dval" id="r-vis">—</span></div>
+      <div class="drow"><span class="dlbl">Distance</span><span class="dval" id="r-dist">—</span></div>
+      <div class="phase-row">
+        <span class="phase-emoji" id="r-phase-emoji">🌑</span>
+        <div>
+          <div class="phase-name"  id="r-phase-name">—</div>
+          <div class="phase-illum" id="r-illum-txt">—</div>
+          <div class="illum-bar"><div class="illum-fill" id="r-illum-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ra-card">
+    <div class="ra-card-title">Right Ascension · Steps of 30° backwards to 0°</div>
+    <div class="ra-steps" id="ra-steps"></div>
+    <div class="ra-markers">
+      <div class="ra-marker"><span class="rm-val">0°</span>  <span class="rm-lbl">Vernal Equinox ♈</span></div>
+      <div class="ra-marker"><span class="rm-val">90°</span> <span class="rm-lbl">Summer Solstice</span></div>
+      <div class="ra-marker"><span class="rm-val">180°</span><span class="rm-lbl">Autumnal Equinox</span></div>
+      <div class="ra-marker"><span class="rm-val">270°</span><span class="rm-lbl">Winter Solstice</span></div>
+    </div>
+  </div>
+
+  <div class="footer-note" id="r-footer"></div>
+</div>
+
+<script>
+// ─── Ortsdaten ────────────────────────────────────────────────────────────────
+const ORTE = {
+  "New York City":     { lat:  40.7128, lon:  -74.0060, tz: "America/New_York" },
+  "Los Angeles":       { lat:  34.0522, lon: -118.2437, tz: "America/Los_Angeles" },
+  "Chicago":           { lat:  41.8781, lon:  -87.6298, tz: "America/Chicago" },
+  "São Paulo":         { lat: -23.5505, lon:  -46.6333, tz: "America/Sao_Paulo" },
+  "Mexico City":      { lat:  19.4326, lon:  -99.1332, tz: "America/Mexico_City" },
+  "London":            { lat:  51.5074, lon:   -0.1278, tz: "Europe/London" },
+  "Paris":             { lat:  48.8566, lon:    2.3522, tz: "Europe/Paris" },
+  "Berlin":            { lat:  52.5200, lon:   13.4050, tz: "Europe/Berlin" },
+  "Hattingen":         { lat:  51.3990, lon:    7.1857, tz: "Europe/Berlin" },
+  "Hamburg":           { lat:  53.5753, lon:   10.0153, tz: "Europe/Berlin" },
+  "Munich":           { lat:  48.1351, lon:   11.5820, tz: "Europe/Berlin" },
+  "Vienna":              { lat:  48.2082, lon:   16.3738, tz: "Europe/Vienna" },
+  "Zurich":            { lat:  47.3769, lon:    8.5417, tz: "Europe/Zurich" },
+  "Moscow":            { lat:  55.7558, lon:   37.6173, tz: "Europe/Moscow" },
+  "Cairo":             { lat:  30.0444, lon:   31.2357, tz: "Africa/Cairo" },
+  "Dubai":             { lat:  25.2048, lon:   55.2708, tz: "Asia/Dubai" },
+  "Mumbai":            { lat:  19.0760, lon:   72.8777, tz: "Asia/Kolkata" },
+  "Beijing":            { lat:  39.9042, lon:  116.4074, tz: "Asia/Shanghai" },
+  "Tokyo":             { lat:  35.6762, lon:  139.6503, tz: "Asia/Tokyo" },
+  "Sydney":            { lat: -33.8688, lon:  151.2093, tz: "Australia/Sydney" },
+  "Custom …": { lat: null, lon: null, tz: "UTC" },
+};
+
+// ─── Astronomie in reinem JS ──────────────────────────────────────────────────
+const DEG = Math.PI / 180;
+const RAD = 180 / Math.PI;
+
+function mod360(x) { return ((x % 360) + 360) % 360; }
+
+// Julian Day Number from JS Date (UTC)
+function jd(date) {
+  return date.getTime() / 86400000 + 2440587.5;
+}
+
+// Mondposition nach Meeus "Astronomical Algorithms" (vereinfacht, ~0.3° genau)
+function moonEquatorial(date) {
+  const T = (jd(date) - 2451545.0) / 36525; // Julian centuries from J2000
+
+  // Moon's mean longitude
+  const L0 = mod360(218.3164477 + 481267.88123421*T - 0.0015786*T*T + T*T*T/538841 - T*T*T*T/65194000);
+  // Moon's mean anomaly
+  const M  = mod360(134.9633964 + 477198.8675055*T + 0.0087414*T*T + T*T*T/69699 - T*T*T*T/14712000);
+  // Sun's mean anomaly
+  const Ms = mod360(357.5291092 + 35999.0502909*T - 0.0001536*T*T + T*T*T/24490000);
+  // Moon's argument of latitude
+  const F  = mod360(93.2720950 + 483202.0175233*T - 0.0036539*T*T - T*T*T/3526000 + T*T*T*T/863310000);
+  // Moon's mean elongation
+  const D  = mod360(297.8501921 + 445267.1114034*T - 0.0018819*T*T + T*T*T/545868 - T*T*T*T/113065000);
+
+  const Lr = L0*DEG, Mr=M*DEG, Msr=Ms*DEG, Fr=F*DEG, Dr=D*DEG;
+
+  // Longitude corrections (degrees)
+  let dL = 6.288774 * Math.sin(Mr)
+    + 1.274027 * Math.sin(2*Dr - Mr)
+    + 0.658314 * Math.sin(2*Dr)
+    + 0.213618 * Math.sin(2*Mr)
+    - 0.185116 * Math.sin(Msr)
+    - 0.114332 * Math.sin(2*Fr)
+    + 0.058793 * Math.sin(2*Dr - 2*Mr)
+    + 0.057066 * Math.sin(2*Dr - Msr - Mr)
+    + 0.053322 * Math.sin(2*Dr + Mr)
+    + 0.045758 * Math.sin(2*Dr - Msr)
+    - 0.040923 * Math.sin(Msr - Mr)
+    - 0.034720 * Math.sin(Dr)
+    - 0.030383 * Math.sin(Msr + Mr)
+    + 0.015327 * Math.sin(2*Dr - 2*Fr)
+    - 0.012528 * Math.sin(2*Fr + Mr)
+    - 0.010980 * Math.sin(2*Fr - Mr)
+    + 0.010675 * Math.sin(4*Dr - Mr)
+    + 0.010034 * Math.sin(3*Mr)
+    + 0.008548 * Math.sin(4*Dr - 2*Mr)
+    - 0.007888 * Math.sin(2*Dr + Msr - Mr)
+    - 0.006766 * Math.sin(2*Dr + Msr)
+    - 0.005163 * Math.sin(Dr - Mr)
+    + 0.004987 * Math.sin(Dr + Msr)
+    + 0.004036 * Math.sin(2*Dr - Msr + Mr)
+    + 0.003994 * Math.sin(2*Dr + 2*Mr)
+    + 0.003861 * Math.sin(4*Dr)
+    + 0.003665 * Math.sin(2*Dr - 3*Mr)
+    - 0.002689 * Math.sin(Msr - 2*Mr)
+    - 0.002602 * Math.sin(2*Dr - 2*Fr + Mr);
+
+  // Latitude corrections
+  let dB = 5.127987 * Math.sin(Fr)
+    + 0.280606 * Math.sin(Mr + Fr)
+    + 0.277693 * Math.sin(Mr - Fr)
+    + 0.173238 * Math.sin(2*Dr - Fr)
+    + 0.055413 * Math.sin(2*Dr + Fr - Mr)
+    + 0.046272 * Math.sin(2*Dr - Fr - Mr)
+    + 0.032573 * Math.sin(2*Dr + Fr)
+    + 0.017198 * Math.sin(2*Mr + Fr)
+    + 0.009267 * Math.sin(2*Dr + Mr - Fr)
+    + 0.008823 * Math.sin(2*Mr - Fr)
+    + 0.008247 * Math.sin(2*Dr - Msr - Fr)
+    + 0.004323 * Math.sin(2*Dr - Fr - 2*Mr)
+    + 0.004200 * Math.sin(2*Dr + Fr + Mr)
+    - 0.003372 * Math.sin(Msr - Fr - 2*Dr)
+    - 0.002814 * Math.sin(2*Dr + Msr - Fr)
+    + 0.002178 * Math.sin(Fr - Msr);
+
+  const lon_ecl = mod360(L0 + dL);      // ecliptic longitude (deg)
+  const lat_ecl = dB;                    // ecliptic latitude (deg)
+
+  // Distance (km)
+  let dR = -20905.355 * Math.cos(Mr)
+    -  3699.111 * Math.cos(2*Dr - Mr)
+    -  2955.968 * Math.cos(2*Dr)
+    -   569.925 * Math.cos(2*Mr)
+    +    48.888 * Math.cos(Msr)
+    -     3.149 * Math.cos(2*Fr)
+    +   246.158 * Math.cos(2*Dr - 2*Mr)
+    -   152.138 * Math.cos(2*Dr - Msr - Mr)
+    -   170.733 * Math.cos(2*Dr + Mr)
+    -   204.586 * Math.cos(2*Dr - Msr)
+    -   129.620 * Math.cos(Msr - Mr)
+    +   108.743 * Math.cos(Dr)
+    +   104.755 * Math.cos(Msr + Mr)
+    +    10.321 * Math.cos(2*Dr - 2*Fr)
+    +    79.661 * Math.cos(2*Fr - Mr);
+  const dist_km = 385000.56 + dR;
+
+  // Obliquity of ecliptic
+  const eps = (23.439291111 - 0.013004167*T - 0.000000164*T*T + 0.000000504*T*T*T) * DEG;
+  const le = lon_ecl * DEG, be = lat_ecl * DEG;
+
+  // Ecliptic → Equatorial
+  const ra_rad  = Math.atan2(Math.sin(le)*Math.cos(eps) - Math.tan(be)*Math.sin(eps), Math.cos(le));
+  const dec_rad = Math.asin(Math.sin(be)*Math.cos(eps) + Math.cos(be)*Math.sin(eps)*Math.sin(le));
+
+  const ra_deg  = mod360(ra_rad * RAD);
+  const dec_deg = dec_rad * RAD;
+
+  // Moon phase: angle between sun and moon
+  // Simple sun longitude
+  const sunL = mod360(280.46646 + 36000.76983*T + 0.0003032*T*T);
+  const sunM = mod360(357.52911 + 35999.05029*T - 0.0001537*T*T);
+  const sunEq = 1.914602*Math.sin(sunM*DEG) + 0.019993*Math.sin(2*sunM*DEG);
+  const sunLon = sunL + sunEq;
+  const phase_angle = mod360(lon_ecl - sunLon);
+  const illumination = (1 - Math.cos(phase_angle * DEG)) / 2 * 100;
+
+  return { ra_deg, dec_deg, dist_km, illumination, lon_ecl };
+}
+
+// Equatorial → Horizontal (azimuth, altitude)
+function equatorialToHorizontal(ra_deg, dec_deg, lat_deg, lon_deg, date) {
+  const T = (jd(date) - 2451545.0) / 36525;
+
+  // Greenwich Mean Sidereal Time (degrees)
+  const GMST = mod360(280.46061837 + 360.98564736629*(jd(date)-2451545.0) + 0.000387933*T*T - T*T*T/38710000);
+  const LST  = mod360(GMST + lon_deg);
+
+  const HA = (LST - ra_deg) * DEG;   // hour angle in radians
+  const dec = dec_deg * DEG;
+  const lat = lat_deg * DEG;
+
+  const sinAlt = Math.sin(dec)*Math.sin(lat) + Math.cos(dec)*Math.cos(lat)*Math.cos(HA);
+  const alt = Math.asin(sinAlt) * RAD;
+
+  const cosAz = (Math.sin(dec) - Math.sin(alt*DEG)*Math.sin(lat)) / (Math.cos(alt*DEG)*Math.cos(lat));
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz))) * RAD;
+  if (Math.sin(HA) > 0) az = 360 - az;
+
+  return { alt, az };
+}
+
+// Convert RA degrees → h m s string
+function degToHMS(deg) {
+  deg = mod360(deg);
+  const total_h = deg / 15;
+  const h = Math.floor(total_h);
+  const total_m = (total_h - h) * 60;
+  const m = Math.floor(total_m);
+  const s = (total_m - m) * 60;
+  return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${s.toFixed(2).padStart(5,'0')}s`;
+}
+
+// Convert Dec degrees → ±d m s string
+function degToDMS(deg) {
+  const sign = deg >= 0 ? '+' : '−';
+  const a = Math.abs(deg);
+  const d = Math.floor(a);
+  const tm = (a - d) * 60;
+  const m = Math.floor(tm);
+  const s = (tm - m) * 60;
+  return `${sign}${String(d).padStart(2,'0')}° ${String(m).padStart(2,'0')}' ${s.toFixed(2).padStart(5,'0')}"`;
+}
+
+// Phase name + emoji
+function phaseInfo(p) {
+  if (p <  2) return ['🌑','New Moon'];
+  if (p < 48) return ['🌒','Waxing Crescent'];
+  if (p < 52) return ['🌓','First Quarter'];
+  if (p < 98) return ['🌔','Waxing Gibbous'];
+  return ['🌕','Full Moon'];
+}
+
+// ─── Zeitzone-Hilfsfunktionen ─────────────────────────────────────────────────
+function localDateString(date, tz) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'
+  }).format(date);
+}
+function localTimeString(date, tz) {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: tz, hour:'2-digit', minute:'2-digit'
+  }).format(date);
+}
+function localToUTC(dateStr, timeStr, tz) {
+  // Build a Date from a local time string in the given timezone
+  // We use the trick: format UTC epoch in the given TZ and compare
+  const naive = new Date(`${dateStr}T${timeStr}:00Z`);
+  // Find offset by formatting naive UTC as local time in tz
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year:'numeric',month:'2-digit',day:'2-digit',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+  });
+  function localOf(d) {
+    const p = fmt.formatToParts(d);
+    const g = t => p.find(x=>x.type===t).value;
+    return new Date(`${g('year')}-${g('month')}-${g('day')}T${g('hour').replace('24','00')}:${g('minute')}:${g('second')}Z`);
+  }
+  // Iterative correction
+  let guess = naive;
+  for (let i = 0; i < 3; i++) {
+    const diff = localOf(guess) - naive;
+    guess = new Date(guess.getTime() - diff);
+  }
+  return guess;
+}
+function tzOffsetStr(date, tz) {
+  try {
+    const parts = new Intl.DateTimeFormat('en', {
+      timeZone: tz, timeZoneName: 'shortOffset'
+    }).formatToParts(date);
+    return parts.find(p => p.type === 'timeZoneName')?.value || '';
+  } catch { return ''; }
+}
+
+// ─── UI-Logik ─────────────────────────────────────────────────────────────────
+function currentTZ() {
+  const ort = document.getElementById('ort').value;
+  return (ORTE[ort] || { tz: 'UTC' }).tz;
+}
+
+function onOrtChange() {
+  const ort = document.getElementById('ort').value;
+  const info = ORTE[ort];
+  const custom = document.getElementById('custom-row');
+  const badge  = document.getElementById('tz-badge');
+  const zlbl   = document.getElementById('zeit-lbl');
+
+  if (ort === 'Custom …') {
+    custom.classList.add('show');
+    badge.textContent = 'Timezone: UTC — input in UTC';
+    zlbl.textContent  = 'Time (UTC)';
+  } else {
+    custom.classList.remove('show');
+    document.getElementById('lat-in').value = info.lat;
+    document.getElementById('lon-in').value = info.lon;
+    const off = tzOffsetStr(new Date(), info.tz);
+    badge.textContent = `Timezone: ${info.tz}  (${off})  — local time`;
+    zlbl.textContent  = 'Time (local)';
+  }
+}
+
+function jetzt() {
+  const tz   = currentTZ();
+  const now  = new Date();
+  document.getElementById('datum').value = localDateString(now, tz);
+  document.getElementById('zeit').value  = localTimeString(now, tz);
+  berechnen();
+}
+
+function berechnen() {
+  const ort   = document.getElementById('ort').value;
+  const datum = document.getElementById('datum').value;
+  const zeit  = document.getElementById('zeit').value;
+  const lat   = parseFloat(document.getElementById('lat-in').value);
+  const lon   = parseFloat(document.getElementById('lon-in').value);
+  const tz    = currentTZ();
+
+  if (!datum || !zeit) return;
+  if (isNaN(lat) || isNaN(lon)) { alert('Invalid coordinates.'); return; }
+
+  const utcDate = localToUTC(datum, zeit, tz);
+  const moon    = moonEquatorial(utcDate);
+  const horiz   = equatorialToHorizontal(moon.ra_deg, moon.dec_deg, lat, lon, utcDate);
+
+  // ─── Werte eintragen ─────────────────────────────────────────────────────
+  document.getElementById('r-ra-hms').textContent  = degToHMS(moon.ra_deg);
+  document.getElementById('r-ra-deg').textContent  = moon.ra_deg.toFixed(6) + '°';
+  document.getElementById('r-dec-dms').textContent = degToDMS(moon.dec_deg);
+  document.getElementById('r-dec-deg').textContent = (moon.dec_deg >= 0 ? '+' : '') + moon.dec_deg.toFixed(6) + '°';
+  document.getElementById('r-az').textContent      = horiz.az.toFixed(2) + '°';
+
+  const altEl = document.getElementById('r-alt');
+  altEl.textContent = horiz.alt.toFixed(2) + '°';
+  altEl.className   = 'dval ' + (horiz.alt > 0 ? 'ok' : 'bad');
+
+  const visEl = document.getElementById('r-vis');
+  visEl.textContent = horiz.alt > 0 ? '✔ Yes' : '✘ No';
+  visEl.className   = 'dval ' + (horiz.alt > 0 ? 'ok' : 'bad');
+
+  document.getElementById('r-dist').textContent    = Math.round(moon.dist_km).toLocaleString('en-US') + ' km';
+
+  const [em, nm] = phaseInfo(moon.illumination);
+  document.getElementById('r-phase-emoji').textContent = em;
+  document.getElementById('r-phase-name').textContent  = nm;
+  document.getElementById('r-illum-txt').textContent   = `Illumination: ${moon.illumination.toFixed(1)} %`;
+  document.getElementById('r-illum-bar').style.width   = moon.illumination.toFixed(1) + '%';
+
+  // ─── RA-Schritte ─────────────────────────────────────────────────────────
+  const ra = moon.ra_deg;
+  const steps = [];
+  let cur = ra;
+  steps.push(cur);
+  while (cur > 0.001) {
+    cur = Math.max(0, parseFloat((cur - 30).toFixed(6)));
+    steps.push(cur);
+  }
+
+  const wrap = document.getElementById('ra-steps');
+  wrap.innerHTML = '';
+  steps.forEach((deg, i) => {
+    if (i > 0) {
+      const arr = document.createElement('div');
+      arr.className = 'ra-arrow'; arr.textContent = '←';
+      wrap.appendChild(arr);
+    }
+    const div = document.createElement('div');
+    div.className = `ra-step s${Math.min(i, 4)}`;
+
+    const dEl = document.createElement('div');
+    dEl.className = 'ra-deg';
+    dEl.textContent = deg.toFixed(2) + '°';
+
+    const hEl = document.createElement('div');
+    hEl.className = 'ra-hms';
+    hEl.textContent = degToHMS(deg);
+
+    const lEl = document.createElement('div');
+    lEl.className = 'ra-lbl';
+    if (i === 0)       lEl.textContent = 'Current';
+    else if (deg < 0.01) lEl.textContent = '= 0° ♈';
+    else               lEl.textContent = `−${30*i}°`;
+
+    div.append(dEl, hEl, lEl);
+    wrap.appendChild(div);
+  });
+
+  // ─── Footer ───────────────────────────────────────────────────────────────
+  const off = tzOffsetStr(utcDate, tz);
+  const utcStr = utcDate.toISOString().slice(0,16).replace('T',' ');
+  document.getElementById('r-footer').textContent =
+    `Local time: ${datum} ${zeit}  (${tz} ${off})  →  UTC: ${utcStr}  ·  ${ort}`;
+
+  document.getElementById('results').style.display = 'block';
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+onOrtChange();
+jetzt();
+</script>
+</body>
+</html>
