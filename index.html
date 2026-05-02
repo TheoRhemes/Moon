@@ -51,26 +51,26 @@ body::before {
     radial-gradient(1.5px 1.5px at 83% 79%, rgba(200,210,255,.32) 0%, transparent 100%);
   pointer-events: none; z-index: 0;
 }
-.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 64px; }
+.page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 24px 16px 40px; }
 
-header { text-align: center; margin-bottom: 44px; }
+header { text-align: center; margin-bottom: 16px; }
 .moon-icon {
-  font-size: 52px; line-height: 1; margin-bottom: 14px; display: block;
-  animation: mpulse 4s ease-in-out infinite;
+  font-size: 26px; line-height: 1; margin-bottom: 4px; display: inline;
+  animation: mpulse 4s ease-in-out infinite; margin-right: 8px;
 }
 @keyframes mpulse {
   0%,100% { text-shadow: 0 0 18px rgba(253,230,138,.3); }
   50%      { text-shadow: 0 0 36px rgba(253,230,138,.6); }
 }
 h1 {
-  font-family: 'EB Garamond', serif; font-size: clamp(24px,5vw,36px);
-  font-weight: 400; letter-spacing: .18em; color: var(--bright); text-transform: uppercase;
+  font-family: 'EB Garamond', serif; font-size: clamp(15px,3vw,20px);
+  font-weight: 400; letter-spacing: .15em; color: var(--bright); text-transform: uppercase; display: inline;
 }
-.subtitle { font-size: 11px; letter-spacing: .18em; color: var(--muted); margin-top: 8px; text-transform: uppercase; }
+.subtitle { font-size: 10px; letter-spacing: .13em; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
 
 .panel {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 26px 30px; margin-bottom: 24px;
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 16px;
 }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 @media(max-width:560px){ .grid2 { grid-template-columns: 1fr; } }
@@ -93,7 +93,7 @@ select option { background: #1a2540; }
 #custom-row { display: none; grid-column: 1 / -1; }
 #custom-row.show { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
-.btn-row { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+.btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 button {
   font-family: 'JetBrains Mono', monospace; font-size: 12px;
   letter-spacing: .12em; text-transform: uppercase; padding: 10px 22px;
@@ -104,16 +104,16 @@ button {
 .btn-s { background: transparent; border-color: var(--border2); color: var(--sky); }
 .btn-s:hover { border-color: var(--sky); }
 
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
 @media(max-width:560px){ .results-grid { grid-template-columns: 1fr; } }
 
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 20px 22px;
+  border-radius: 10px; padding: 14px 16px;
 }
 .card-title {
   font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
-  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  margin-bottom: 10px; padding-bottom: 7px; border-bottom: 1px solid var(--border);
 }
 .drow { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
 .dlbl { font-size: 11px; color: var(--muted); letter-spacing: .07em; }
@@ -136,11 +136,11 @@ button {
 /* RA steps */
 .ra-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 20px 22px; margin-bottom: 14px;
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
 }
 .ra-card-title {
   font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
-  margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
 }
 .ra-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .ra-arrow { font-size: 15px; color: var(--border2); align-self: center; margin-bottom: 18px; flex: none; }
@@ -164,11 +164,11 @@ button {
 /* Mirror calculator */
 .mirror-card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 20px 22px; margin-bottom: 14px;
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
 }
 .mirror-card-title {
   font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
-  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
 }
 .mirror-input-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .mirror-input-row input {
@@ -215,7 +215,7 @@ button {
 </header>
 
 <div class="panel">
-  <div class="grid2" style="margin-bottom:18px">
+  <div class="grid2" style="margin-bottom:12px">
     <div>
       <label for="ort">Location</label>
       <select id="ort" onchange="onOrtChange()">
