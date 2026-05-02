@@ -154,6 +154,41 @@ button {
 .s3 .ra-deg { color: #5a4820; }           .s3 .ra-lbl { color: #5a4820; }
 .s4 .ra-deg { color: #3a3010; }           .s4 .ra-lbl { color: #3a3010; }
 
+/* 0°–90° highlight */
+.ra-step.in-quadrant { background: rgba(110,231,183,.07); border-radius: 7px; outline: 1px solid rgba(110,231,183,.22); }
+.ra-step.in-quadrant .ra-deg { color: var(--green) !important; }
+.ra-step.in-quadrant .ra-lbl { color: var(--green) !important; }
+.ra-step { cursor: pointer; }
+.ra-step:hover { background: rgba(147,197,253,.08); outline: 1px solid rgba(147,197,253,.2); border-radius: 7px; }
+
+/* Mirror calculator */
+.mirror-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px 22px; margin-bottom: 14px;
+}
+.mirror-card-title {
+  font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
+  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.mirror-input-row { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.mirror-input-row input {
+  width: 160px; background: var(--card); border: 1px solid var(--border2);
+  border-radius: 6px; color: var(--bright); font-family: 'JetBrains Mono', monospace;
+  font-size: 18px; font-weight: 400; padding: 8px 12px; outline: none;
+  transition: border-color .2s; text-align: center;
+}
+.mirror-input-row input:focus { border-color: var(--sky); }
+.mirror-input-label { font-size: 11px; color: var(--muted); letter-spacing: .07em; }
+.mirror-results { display: flex; flex-wrap: wrap; gap: 10px; }
+.mirror-pill {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 18px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; min-width: 120px;
+}
+.mirror-pill .mp-val { font-size: 20px; color: var(--sky); }
+.mirror-pill .mp-val.neg { color: var(--red); }
+.mirror-pill .mp-lbl { font-size: 9px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
 .ra-markers {
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
@@ -226,8 +261,8 @@ button {
   </div>
 
   <div class="btn-row">
-    <button class="btn-p" onclick="jetzt()">&#9679; Now</button>
-    <button class="btn-s" onclick="berechnen()">Calculate</button>
+    <button class="btn-s" onclick="jetzt()">&#9679; Now</button>
+    <button class="btn-p" onclick="berechnen()">Calculate</button>
   </div>
 </div>
 
@@ -265,6 +300,19 @@ button {
       <div class="ra-marker"><span class="rm-val">90°</span> <span class="rm-lbl">Summer Solstice</span></div>
       <div class="ra-marker"><span class="rm-val">180°</span><span class="rm-lbl">Autumnal Equinox</span></div>
       <div class="ra-marker"><span class="rm-val">270°</span><span class="rm-lbl">Winter Solstice</span></div>
+    </div>
+  </div>
+
+  <div class="mirror-card">
+    <div class="mirror-card-title">Angle Mirror · Right Angle Reflection</div>
+    <div class="mirror-input-row">
+      <input type="number" id="mirror-in" placeholder="65.62" step="0.01" oninput="calcMirror()">
+      <span class="mirror-input-label">°</span>
+    </div>
+    <div class="mirror-results" id="mirror-results">
+      <div class="mirror-pill"><span class="mp-val" id="mp-orig">—</span><span class="mp-lbl">Input</span></div>
+      <div class="mirror-pill"><span class="mp-val" id="mp-pos">—</span><span class="mp-lbl">+ Mirror</span></div>
+      <div class="mirror-pill"><span class="mp-val neg" id="mp-neg">—</span><span class="mp-lbl">− Mirror</span></div>
     </div>
   </div>
 
@@ -613,15 +661,20 @@ function berechnen() {
   const wrap = document.getElementById('ra-steps');
   wrap.innerHTML = '';
 
-  // Render +30° steps (left side, fading colors)
-  stepsUp.forEach((deg, i) => {
+  let maxHighlighted = -Infinity;
+
+  function makeStep(deg, className, labelText, displayDeg) {
     const div = document.createElement('div');
-    const colorIdx = Math.min(stepsUp.length - i, 4); // farther = more faded
-    div.className = `ra-step s${colorIdx}`;
+    div.className = className;
+    const inQ = displayDeg > 0 && displayDeg <= 90;
+    if (inQ) {
+      div.classList.add('in-quadrant');
+      if (displayDeg > maxHighlighted) maxHighlighted = displayDeg;
+    }
 
     const dEl = document.createElement('div');
     dEl.className = 'ra-deg';
-    dEl.textContent = deg > 360 ? (deg - 360).toFixed(2) + '°' : deg.toFixed(2) + '°';
+    dEl.textContent = displayDeg.toFixed(2) + '°';
 
     const hEl = document.createElement('div');
     hEl.className = 'ra-hms';
@@ -629,23 +682,28 @@ function berechnen() {
 
     const lEl = document.createElement('div');
     lEl.className = 'ra-lbl';
-    lEl.textContent = `+${30 * (stepsUp.length - i)}°`;
+    lEl.textContent = labelText;
 
     div.append(dEl, hEl, lEl);
-    wrap.appendChild(div);
+    div.style.cursor = 'pointer';
+    div.title = 'Click to use in mirror calculator';
+    div.addEventListener('click', () => setMirror(displayDeg));
+    return div;
+  }
 
+  // Render +30° steps (left side, fading colors)
+  stepsUp.forEach((deg, i) => {
+    const displayDeg = deg > 360 ? deg - 360 : deg;
+    const colorIdx = Math.min(stepsUp.length - i, 4);
+    const div = makeStep(deg, `ra-step s${colorIdx}`, `+${30 * (stepsUp.length - i)}°`, displayDeg);
+    wrap.appendChild(div);
     const arr = document.createElement('div');
     arr.className = 'ra-arrow'; arr.textContent = '→';
     wrap.appendChild(arr);
   });
 
   // Render current RA
-  const divCur = document.createElement('div');
-  divCur.className = 'ra-step s0';
-  const dCur = document.createElement('div'); dCur.className = 'ra-deg'; dCur.textContent = ra.toFixed(2) + '°';
-  const hCur = document.createElement('div'); hCur.className = 'ra-hms'; hCur.textContent = degToHMS(ra);
-  const lCur = document.createElement('div'); lCur.className = 'ra-lbl'; lCur.textContent = 'Current';
-  divCur.append(dCur, hCur, lCur);
+  const divCur = makeStep(ra, 'ra-step s0', 'Current', ra);
   wrap.appendChild(divCur);
 
   // Render -30° steps (right side)
@@ -653,26 +711,13 @@ function berechnen() {
     const arr = document.createElement('div');
     arr.className = 'ra-arrow'; arr.textContent = '←';
     wrap.appendChild(arr);
-
-    const div = document.createElement('div');
-    div.className = `ra-step s${Math.min(i + 1, 4)}`;
-
-    const dEl = document.createElement('div');
-    dEl.className = 'ra-deg';
-    dEl.textContent = deg.toFixed(2) + '°';
-
-    const hEl = document.createElement('div');
-    hEl.className = 'ra-hms';
-    hEl.textContent = degToHMS(deg);
-
-    const lEl = document.createElement('div');
-    lEl.className = 'ra-lbl';
-    if (deg < 0.01) lEl.textContent = '= 0° ♈';
-    else            lEl.textContent = `−${30 * (i + 1)}°`;
-
-    div.append(dEl, hEl, lEl);
+    const lbl = deg < 0.01 ? '= 0° ♈' : `−${30 * (i + 1)}°`;
+    const div = makeStep(deg, `ra-step s${Math.min(i + 1, 4)}`, lbl, deg);
     wrap.appendChild(div);
   });
+
+  // Auto-set mirror to largest highlighted value
+  if (maxHighlighted > 0) setMirror(maxHighlighted);
 
   // ─── Footer ───────────────────────────────────────────────────────────────
   const off = tzOffsetStr(utcDate, tz);
@@ -681,6 +726,28 @@ function berechnen() {
     `Local time: ${datum} ${zeit}  (${tz} ${off})  →  UTC: ${utcStr}  ·  ${ort}`;
 
   document.getElementById('results').style.display = 'block';
+}
+
+// ─── Mirror Calculator ────────────────────────────────────────────────────────
+function setMirror(v) {
+  document.getElementById('mirror-in').value = v.toFixed(2);
+  calcMirror();
+}
+
+function calcMirror() {
+  const raw = document.getElementById('mirror-in').value;
+  const v = parseFloat(raw);
+  if (raw === '' || isNaN(v)) {
+    document.getElementById('mp-orig').textContent = '—';
+    document.getElementById('mp-pos').textContent  = '—';
+    document.getElementById('mp-neg').textContent  = '—';
+    return;
+  }
+  const pos = v + 90;
+  const neg = v - 90;
+  document.getElementById('mp-orig').textContent = v.toFixed(2) + '°';
+  document.getElementById('mp-pos').textContent  = pos.toFixed(2) + '°';
+  document.getElementById('mp-neg').textContent  = neg.toFixed(2) + '°';
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
