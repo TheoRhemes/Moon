@@ -688,7 +688,10 @@ function berechnen() {
     div.append(dEl, hEl, lEl);
     div.style.cursor = 'pointer';
     div.title = 'Click to use in mirror calculator';
-    div.addEventListener('click', () => setMirror(displayDeg));
+    div.addEventListener('click', () => {
+      setMirror(displayDeg);
+      navigator.clipboard.writeText(displayDeg.toFixed(2));
+    });
     return div;
   }
 
