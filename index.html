@@ -171,7 +171,23 @@ button {
   font-size: 10px; letter-spacing: .16em; color: var(--muted); text-transform: uppercase;
   margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
 }
-#coord-canvas { width: 100%; height: auto; cursor: crosshair; display: block; border-radius: 6px; }
+#coord-canvas { width: 100%; height: auto; cursor: crosshair; display: block; border-radius: 8px; }
+
+/* Copy toast */
+#copy-toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: rgba(15,25,45,.95); border: 1px solid var(--border2);
+  color: var(--green); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: .12em;
+  padding: 8px 20px; border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 999;
+}
+#copy-toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
 .mirror-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
@@ -302,6 +318,11 @@ button {
     </div>
   </div>
 
+  <div class="coord-card">
+    <div class="coord-card-title">Angle Map · Click to copy value</div>
+    <canvas id="coord-canvas" width="800" height="400"></canvas>
+  </div>
+
   <div class="ra-card">
     <div class="ra-card-title">Right Ascension · Steps of 30° backwards to 0°</div>
     <div class="ra-steps" id="ra-steps"></div>
@@ -326,13 +347,10 @@ button {
     </div>
   </div>
 
-  <div class="coord-card">
-    <div class="coord-card-title">Angle Map · Click to copy</div>
-    <canvas id="coord-canvas" width="800" height="400"></canvas>
-  </div>
-
   <div class="footer-note" id="r-footer"></div>
 </div>
+
+<div id="copy-toast">Copied to clipboard</div>
 
 <script>
 // ─── Ortsdaten ────────────────────────────────────────────────────────────────
@@ -704,7 +722,9 @@ function berechnen() {
     div.title = 'Click to use in mirror calculator';
     div.addEventListener('click', () => {
       setMirror(displayDeg);
-      navigator.clipboard.writeText(displayDeg.toFixed(2));
+      const val = displayDeg.toFixed(2);
+      navigator.clipboard.writeText(val);
+      showToast(val);
     });
     return div;
   }
@@ -757,9 +777,6 @@ function berechnen() {
 let coordAngles = [];
 
 function drawCoordSystem(angles) {
-  // Convert 0–360 RA values to the display scheme:
-  // 0–180 stay as-is (right half: 0°=right, 90°=top, 180°=left)
-  // 181–360 become negative: 181°→−179°, 270°→−90°, 359°→−1°
   function toDisplay(a) {
     a = ((a % 360) + 360) % 360;
     return a <= 180 ? a : a - 360;
@@ -777,96 +794,125 @@ function drawCoordSystem(angles) {
   ctx.scale(dpr, dpr);
 
   const cx = W / 2, cy = H / 2;
-  const R = Math.min(cx, cy) * 0.78;
+  const R = Math.min(cx, cy) * 0.74;
 
-  // Background
-  ctx.fillStyle = '#0a1020';
+  // Background gradient
+  const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.6);
+  bg.addColorStop(0,   '#0e1a30');
+  bg.addColorStop(0.6, '#091220');
+  bg.addColorStop(1,   '#050d18');
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle quadrant fills
-  const qFills = [
-    { start: -Math.PI/2, end: 0,          color: 'rgba(110,231,183,.05)' }, // Q1: top-right  (0–90)
-    { start: 0,          end: Math.PI/2,   color: 'rgba(147,197,253,.03)' }, // Q4: bot-right  (−0 – −90)
-    { start: Math.PI/2,  end: Math.PI,     color: 'rgba(147,197,253,.03)' }, // Q3: bot-left   (−90 – −180)
-    { start: -Math.PI,   end: -Math.PI/2,  color: 'rgba(110,231,183,.03)' }, // Q2: top-left   (90–180)
+  // Quadrant fills
+  const quads = [
+    { a0: -Math.PI/2, a1: 0,         c: 'rgba(110,231,183,.06)' },
+    { a0: 0,          a1: Math.PI/2,  c: 'rgba(147,197,253,.03)' },
+    { a0: Math.PI/2,  a1: Math.PI,    c: 'rgba(147,197,253,.03)' },
+    { a0: -Math.PI,   a1: -Math.PI/2, c: 'rgba(110,231,183,.03)' },
   ];
-  qFills.forEach(q => {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R * 1.18, q.start, q.end);
-    ctx.closePath();
-    ctx.fillStyle = q.color;
-    ctx.fill();
+  quads.forEach(q => {
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R * 1.25, q.a0, q.a1);
+    ctx.closePath(); ctx.fillStyle = q.c; ctx.fill();
   });
 
-  // Grid circles
-  [0.33, 0.66, 1].forEach(f => {
+  // Concentric rings
+  [0.25, 0.5, 0.75, 1].forEach(f => {
     ctx.beginPath();
     ctx.arc(cx, cy, R * f, 0, Math.PI * 2);
-    ctx.strokeStyle = f === 1 ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.05)';
-    ctx.lineWidth = f === 1 ? 1 : 0.5;
+    ctx.strokeStyle = f === 1 ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.04)';
+    ctx.lineWidth = f === 1 ? 1.5 : 0.6;
     ctx.stroke();
   });
 
-  // Axes
-  ctx.strokeStyle = 'rgba(255,255,255,.18)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx - R*1.15, cy); ctx.lineTo(cx + R*1.15, cy); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx, cy - R*1.15); ctx.lineTo(cx, cy + R*1.15); ctx.stroke();
-
-  // Axis endpoint labels
-  ctx.font = '9px JetBrains Mono, monospace';
-  ctx.fillStyle = 'rgba(255,255,255,.2)';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('0°',    cx + R*1.18 + 10, cy);
-  ctx.fillText('180°',  cx - R*1.18 - 14, cy);
-  ctx.fillText('90°',   cx, cy - R*1.18 - 10);
-  ctx.fillText('−90°',  cx, cy + R*1.18 + 10);
-
-  // Draw angle vectors
-  const hits = [];
-  angles.forEach(rawA => {
-    const disp = toDisplay(rawA);           // display value e.g. −56.88
-    const isHighlighted = disp > 0 && disp <= 90;
-
-    // Canvas angle: disp=0 → right, disp=90 → up, disp negative → down
-    const canvasRad = -disp * Math.PI / 180; // negative because canvas y is flipped
-    const px = cx + R * Math.cos(canvasRad);
-    const py = cy + R * Math.sin(canvasRad);
-
-    const color = isHighlighted ? '#6ee7b7' : '#93c5fd';
-
-    // Line from center
+  // Diagonal guide lines (45°)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.04)';
+  ctx.lineWidth = 0.5;
+  [-135,-45,45,135].forEach(a => {
+    const r = a * Math.PI / 180;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(px, py);
-    ctx.strokeStyle = isHighlighted ? 'rgba(110,231,183,.3)' : 'rgba(147,197,253,.18)';
-    ctx.lineWidth = 1;
+    ctx.lineTo(cx + R * 1.1 * Math.cos(r), cy + R * 1.1 * Math.sin(r));
     ctx.stroke();
+  });
+  ctx.restore();
+
+  // Main axes
+  ctx.strokeStyle = 'rgba(255,255,255,.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - R*1.18, cy); ctx.lineTo(cx + R*1.18, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - R*1.18); ctx.lineTo(cx, cy + R*1.18); ctx.stroke();
+
+  // Center dot
+  ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fill();
+
+  // Axis labels
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,.22)';
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';  ctx.fillText('0°',    cx + R*1.2 + 4, cy);
+  ctx.textAlign = 'right'; ctx.fillText('180°',  cx - R*1.2 - 4, cy);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom'; ctx.fillText('90°',  cx, cy - R*1.2 - 4);
+  ctx.textBaseline = 'top';    ctx.fillText('−90°', cx, cy + R*1.2 + 4);
+
+  // Draw vectors
+  const hits = [];
+  angles.forEach(rawA => {
+    const disp = toDisplay(rawA);
+    const isHighlighted = disp > 0 && disp <= 90;
+    const canvasRad = -disp * Math.PI / 180;
+    const px = cx + R * Math.cos(canvasRad);
+    const py = cy + R * Math.sin(canvasRad);
+    const color     = isHighlighted ? '#6ee7b7' : '#93c5fd';
+    const colorDim  = isHighlighted ? 'rgba(110,231,183,.0)' : 'rgba(147,197,253,.0)';
+    const colorMid  = isHighlighted ? 'rgba(110,231,183,.35)' : 'rgba(147,197,253,.22)';
+
+    // Gradient line
+    const lg = ctx.createLinearGradient(cx, cy, px, py);
+    lg.addColorStop(0, colorDim);
+    lg.addColorStop(1, colorMid);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
+    ctx.strokeStyle = lg; ctx.lineWidth = isHighlighted ? 1.5 : 1; ctx.stroke();
+
+    // Glow behind dot
+    const glow = ctx.createRadialGradient(px, py, 0, px, py, isHighlighted ? 14 : 10);
+    glow.addColorStop(0, isHighlighted ? 'rgba(110,231,183,.35)' : 'rgba(147,197,253,.22)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(px, py, isHighlighted ? 14 : 10, 0, Math.PI*2);
+    ctx.fillStyle = glow; ctx.fill();
 
     // Dot
-    ctx.beginPath();
-    ctx.arc(px, py, 5, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, isHighlighted ? 5.5 : 4, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
 
-    // Label — offset outward from dot
-    const labelR = R + 20;
+    // Label
+    const labelR = R + 22;
     const lx = cx + labelR * Math.cos(canvasRad);
     const ly = cy + labelR * Math.sin(canvasRad);
-
-    ctx.font = 'bold 11px JetBrains Mono, monospace';
-    ctx.fillStyle = color;
-    // Align based on position
     const dx = lx - cx, dy = ly - cy;
+    ctx.font = `${isHighlighted ? 'bold' : '500'} ${isHighlighted ? 12 : 11}px JetBrains Mono, monospace`;
+    ctx.fillStyle = color;
     ctx.textAlign    = dx >  8 ? 'left' : dx < -8 ? 'right' : 'center';
-    ctx.textBaseline = dy > 6 ? 'top'  : dy < -6 ? 'bottom' : 'middle';
+    ctx.textBaseline = dy > 6  ? 'top'  : dy < -6 ? 'bottom' : 'middle';
     ctx.fillText(disp.toFixed(2) + '°', lx, ly);
 
-    hits.push({ x: px, y: py, val: disp, r: 14 });
+    hits.push({ x: px, y: py, val: disp, r: 16 });
   });
 
   canvas._hits = hits;
+}
+
+let toastTimer = null;
+function showToast(val) {
+  const t = document.getElementById('copy-toast');
+  t.textContent = `Copied  ${val}`;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 function coordCanvasClick(e) {
@@ -883,19 +929,17 @@ function coordCanvasClick(e) {
     if (d < h.r && d < bestD) { bestD = d; best = h; }
   });
   if (best) {
-    navigator.clipboard.writeText(best.val.toFixed(2));
+    const val = best.val.toFixed(2);
+    navigator.clipboard.writeText(val);
+    showToast(val);
     // Flash feedback
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    ctx.save();
-    ctx.scale(dpr, dpr);
-    ctx.beginPath();
-    ctx.arc(best.x, best.y, 10, 0, Math.PI*2);
-    ctx.strokeStyle = '#fde68a';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.save(); ctx.scale(dpr, dpr);
+    ctx.beginPath(); ctx.arc(best.x, best.y, 12, 0, Math.PI*2);
+    ctx.strokeStyle = '#fde68a'; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
-    setTimeout(() => drawCoordSystem(coordAngles), 400);
+    setTimeout(() => drawCoordSystem(coordAngles), 350);
   }
 }
 
